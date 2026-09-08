@@ -273,39 +273,13 @@ const CONFIG = {
   title: "Hội thảo Khoa học & Công nghệ 2026",
   subtitle: "Tài liệu hội thảo — bản xem trực tuyến",
 
-  // Nếu hội thảo dùng MỘT FILE PDF làm tài liệu chính, điền URL vào đây
-  // (cùng thư mục với trang này, hoặc một URL công khai) — trang sẽ tự
-  // tải và render PDF đó thành flipbook ngay khi mở trang, không cần
-  // người xem bấm "Mở PDF" thủ công. Để trống (null) để dùng nội dung mẫu
-  // bên dưới, hoặc chờ người dùng tự chọn file qua nút "Mở PDF" trên header.
-  pdfUrl: "https://alothietkeweb.github.io/HoiThao/TaiLieuOnline/tailieu.pdf", // ví dụ: "ky-yeu-hoi-thao-2026.pdf"
+  // Đường dẫn đến file PDF (nếu ở local thì dùng tailieu.pdf)
+  pdfUrl: "tailieu.pdf",
 
-  // Độ phân giải khi "chụp" mỗi trang PDF ra ảnh — số càng lớn càng nét
-  // nhưng file n�  pages: [], Vũ Minh — Trung tâm Công nghệ &amp; Đổi mới</p>
-        <div class="foot"><span>Trang 07</span><span>Kỷ yếu 2026</span></div>
-      </div>` },
+  // Độ phân giải khi "chụp" mỗi trang PDF ra ảnh
+  pdfRenderScale: 2.0,
 
-    { id: "sponsors", title: "Đơn vị đồng hành", html: `
-      <div class="page-inner">
-        <div class="kicker">Lời cảm ơn</div>
-        <h2>Đơn vị đồng hành</h2>
-        <p>Hội thảo được tổ chức với sự đồng hành của các đơn vị:</p>
-        <hr class="rule">
-        <p><b>Nhà tài trợ Kim cương</b> — Tập đoàn Công nghệ ABC</p>
-        <p><b>Nhà tài trợ Vàng</b> — Công ty Giải pháp XYZ</p>
-        <p><b>Đối tác truyền thông</b> — Tạp chí Khoa học &amp; Đời sống</p>
-        <hr class="rule">
-        <p style="font-size:11px;color:#8B8264;">Mọi thắc mắc xin liên hệ: hoithao2026@example.org</p>
-        <div class="foot"><span>Trang 08</span><span>Kỷ yếu 2026</span></div>
-      </div>` },
-
-    { id: "back", hard: true, title: "Trang bìa sau", html: `
-      <div class="cover-inner">
-        <div class="line"></div>
-        <p style="letter-spacing:1px;">CẢM ƠN QUÝ VỊ ĐÃ THAM DỰ</p>
-        <div class="line"></div>
-      </div>` },
-  ]
+  pages: []
 };
 /* ====================================================================== */
 
