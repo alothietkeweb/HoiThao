@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kỷ yếu Hội thảo — Xem trực tuyến</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Thư viện lật trang: page-flip (StPageFlip) — không phụ thuộc jQuery,
+     hỗ trợ chạm/vuốt trên di động sẵn có, chủ động co giãn theo khung chứa. -->
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+
+<!-- pdf.js (Mozilla) — dùng để đọc file PDF ngay trong trình duyệt, render từng
+     trang PDF thành ảnh rồi đưa vào page-flip. Không cần server xử lý PDF. -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+
+<style>
+  :root{
+    --navy: #10192E;
+    --navy-deep: #0A1120;
+    --parchment: #F4EFE3;
+    --parchment-2: #EDE5D2;
+    --ink: #241F17;
+    --gold: #B58A3F;
+    --gold-soft: #D9BE8A;
+    --wine: #6E2A2E;
+    --line: rgba(181,138,63,0.35);
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 50% 18%, #1B2947 0%, var(--navy) 45%, var(--navy-deep) 100%);
+    font-family:'IBM Plex Sans', sans-serif;
+    color: var(--parchment);
+    overflow:hidden;
+  }
+  .app{ height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- Header ---------- */
+  header{
+    flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 28px;
+    border-bottom:1px solid rgba(217,190,138,0.18);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius:50%;
+    border:1.5px solid var(--gold-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Source Serif 4', serif; font-weight:600; font-size:15px;
+    color: var(--gold-soft);
+  }
+  .brand .titles{ line-height:1.15; }
+  .brand h1{
+    margin:0; font-family:'Source Serif 4', serif; font-weight:600;
+    font-size:17px; letter-spacing:0.2px; color:#F7F1E1;
+  }
+  .brand p{ margin:2px 0 0; font-size:12px; color:#B9AE93; }
+
+  .header-actions{ display:flex; align-items:center; gap:10px; }
+  .icon-btn{
+    background:transparent; border:1px solid rgba(217,190,138,0.3);
+    color:#E9DFC6; width:36px; height:36px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .icon-btn:hover{ border-color:var(--gold-soft); background:rgba(217,190,138,0.08); }
+  .icon-btn svg{ width:17px; height:17px; }
+
+  /* ---------- Body layout ---------- */
+  .body{ flex:1; display:flex; min-height:0; }
+
+  /* Table of contents rail */
+  .toc{
+    width:250px; flex:0 0 auto;
+    border-right:1px solid rgba(217,190,138,0.15);
+    padding:22px 18px; overflow-y:auto;
+    transition: margin-left .25s ease, opacity .2s ease;
+  }
+  .toc.collapsed{ margin-left:-250px; opacity:0; pointer-events:none; }
+  .toc-backdrop{
+    display:none; position:fixed; inset:0; z-index:14;
+    background:rgba(6,10,20,0.55); backdrop-filter:blur(1px);
+  }
+  .toc-backdrop.show{ display:block; }
+  .toc h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:1.4px;
+    color:#9E9377; margin:0 0 14px; font-weight:500;
+  }
+  .toc-item{
+    display:flex; gap:10px; align-items:baseline;
+    padding:9px 8px; border-radius:6px; cursor:pointer;
+    font-size:13.5px; color:#D7CDB2;
+    border-left:2px solid transparent;
+  }
+  .toc-item:hover{ background:rgba(217,190,138,0.07); }
+  .toc-item.active{ border-left-color:var(--gold-soft); color:#F7F1E1; background:rgba(217,190,138,0.09); }
+  .toc-item .num{ color:#7C7358; font-variant-numeric:tabular-nums; font-size:12px; min-width:16px; }
+
+  /* Viewer stage */
+  .stage{
+    flex:1; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 20px;
+  }
+  .stage::before{
+    content:"";
+    position:absolute; left:50%; top:52%; width:60%; height:40%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 70%);
+    filter:blur(6px); pointer-events:none;
+  }
+  #flipbook{ position:relative; width: 100%; height: 100%; }
+  #flipbook .page{
+    background-color:var(--parchment);
+    background-image:
+      linear-gradient(90deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 2.5%, rgba(0,0,0,0) 97.5%, rgba(0,0,0,0.06) 100%);
+    color: var(--ink);
+    overflow:hidden;
+  }
+  #flipbook .page[data-density="hard"]{ background-color:var(--navy-deep); }
+
+  /* Tap zones — active only on small/touch screens (see media query below):
+     tapping the outer edges of the page turns it, since precise corner-drag
+     is fiddly on a small screen. */
+  .tap-zone{ position:absolute; top:0; bottom:0; width:16%; z-index:3; display:none; }
+  .tap-left{ left:0; }
+  .tap-right{ right:0; }
+
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:14px; border-top:1px solid rgba(217,190,138,0.15);
+  }
+  .toolbar .group{
+    display:flex; align-items:center; gap:4px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(217,190,138,0.18); border-radius:12px; padding:4px;
+  }
+  .toolbar button{
+    background:transparent; border:none; color:#E9DFC6; cursor:pointer;
+    width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  }
+  .toolbar button:hover{ background:rgba(217,190,138,0.12); }
+  .toolbar button:disabled{ opacity:0.3; cursor:default; }
+  .toolbar button:disabled:hover{ background:transparent; }
+  .toolbar svg{ width:16px; height:16px; }
+  .page-indicator{
+    font-size:12.5px; color:#D7CDB2; padding:0 10px; font-variant-numeric:tabular-nums;
+    min-width:76px; text-align:center;
+  }
+
+  /* Loading */
+  .loading{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; color:#B9AE93; font-size:12.5px; text-align:center; padding:0 20px;
+  }
+  .loading .spinner{
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid rgba(217,190,138,0.25); border-top-color:var(--gold-soft);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  @media (max-width: 860px){
+    .toc{
+      position:fixed; z-index:15; top:0; bottom:0; left:0;
+      width:min(78vw, 300px); background:var(--navy);
+      box-shadow:20px 0 40px rgba(0,0,0,0.4);
+    }
+    .toc.collapsed{ margin-left:-300px; }
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 640px){
+    header{ padding:12px 14px; }
+    .brand{ gap:9px; }
+    .brand .mark{ width:28px; height:28px; font-size:12px; }
+    .brand h1{ font-size:14px; }
+    .brand p{ display:none; }
+    .header-actions{ gap:6px; }
+    .icon-btn{ width:38px; height:38px; }
+    #toggleToc { display: none !important; }
+    .toc, .toc-backdrop { display: none !important; }
+
+    .stage{ padding:10px 6px; }
+    .stage::before{ width:80%; }
+
+    .toolbar{ padding:10px 8px 14px; gap:4px; }
+    .toolbar .group{ padding:2px; border-radius:11px; }
+    .toolbar button{ width:42px; height:42px; }
+    .page-indicator{ font-size:11.5px; min-width:58px; padding:0 6px; }
+
+    .tap-zone{ display:block; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="mark">HT</div>
+      <div class="titles">
+        <h1 id="confTitle">Hội thảo Khoa học &amp; Công nghệ 2026</h1>
+        <p id="confSub">Kỷ yếu &amp; tài liệu hội thảo — bản xem trực tuyến</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <label class="icon-btn" id="btnOpenPdf" title="Mở file PDF">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9.5 17v-4h1.2a1.3 1.3 0 0 1 0 2.6H9.5m5-2.6v4m0-4h1.3a1.2 1.2 0 0 1 0 2.4"/></svg>
+        <input type="file" id="pdfInput" accept="application/pdf" style="display:none;">
+      </label>
+      <button class="icon-btn" id="toggleToc" title="Ẩn/hiện mục lục">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
+      </button>
+      <button class="icon-btn" id="btnFullscreen" title="Toàn màn hình">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m11-5v3a2 2 0 0 1-2 2h-3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="toc-backdrop" id="tocBackdrop"></div>
+    <nav class="toc" id="tocPanel">
+      <h2>Mục lục</h2>
+      <div id="tocList"></div>
+    </nav>
+
+    <div class="stage" id="stage">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Đang mở tài liệu…</div>
+      </div>
+      <div id="flipbook" style="visibility:hidden;"></div>
+      <div class="tap-zone tap-left" id="tapLeft" title="Trang trước"></div>
+      <div class="tap-zone tap-right" id="tapRight" title="Trang sau"></div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="group">
+      <button id="btnFirst" title="Trang đầu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 5v14M13 5l-7 7 7 7"/></svg>
+      </button>
+      <button id="btnPrev" title="Trang trước">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+    </div>
+    <span class="page-indicator" id="pageIndicator">— / —</span>
+    <div class="group">
+      <button id="btnNext" title="Trang sau">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <button id="btnLast" title="Trang cuối">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M11 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ======================================================================
+   CẤU HÌNH TÀI LIỆU — chỉnh phần này để thay bằng tài liệu hội thảo thật
+   ====================================================================== */
+const CONFIG = {
+  title: "Hội thảo Khoa học & Công nghệ 2026",
+  subtitle: "Kỷ yếu & tài liệu hội thảo — bản xem trực tuyến",
+
+  // Nếu hội thảo dùng MỘT FILE PDF làm tài liệu chính, điền URL vào đây
+  // (cùng thư mục với trang này, hoặc một URL công khai) — trang sẽ tự
+  // tải và render PDF đó thành flipbook ngay khi mở trang, không cần
+  // người xem bấm "Mở PDF" thủ công. Để trống (null) để dùng nội dung mẫu
+  // bên dưới, hoặc chờ người dùng tự chọn file qua nút "Mở PDF" trên header.
+  pdfUrl: "tailieu.pdf", // ví dụ: "ky-yeu-hoi-thao-2026.pdf"
+
+  // Độ phân giải khi "chụp" mỗi trang PDF ra ảnh — số càng lớn càng nét
+  // nhưng file n�  pages: [], Vũ Minh — Trung tâm Công nghệ &amp; Đổi mới</p>
+        <div class="foot"><span>Trang 07</span><span>Kỷ yếu 2026</span></div>
+      </div>` },
+
+    { id: "sponsors", title: "Đơn vị đồng hành", html: `
+      <div class="page-inner">
+        <div class="kicker">Lời cảm ơn</div>
+        <h2>Đơn vị đồng hành</h2>
+        <p>Hội thảo được tổ chức với sự đồng hành của các đơn vị:</p>
+        <hr class="rule">
+        <p><b>Nhà tài trợ Kim cương</b> — Tập đoàn Công nghệ ABC</p>
+        <p><b>Nhà tài trợ Vàng</b> — Công ty Giải pháp XYZ</p>
+        <p><b>Đối tác truyền thông</b> — Tạp chí Khoa học &amp; Đời sống</p>
+        <hr class="rule">
+        <p style="font-size:11px;color:#8B8264;">Mọi thắc mắc xin liên hệ: hoithao2026@example.org</p>
+        <div class="foot"><span>Trang 08</span><span>Kỷ yếu 2026</span></div>
+      </div>` },
+
+    { id: "back", hard: true, title: "Trang bìa sau", html: `
+      <div class="cover-inner">
+        <div class="line"></div>
+        <p style="letter-spacing:1px;">CẢM ƠN QUÝ VỊ ĐÃ THAM DỰ</p>
+        <div class="line"></div>
+      </div>` },
+  ]
+};
+/* ====================================================================== */
+
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.St || !window.St.PageFlip) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#e0a0a0;">Không tải được thư viện page-flip. Kiểm tra kết nối mạng / CDN rồi tải lại trang.</div>';
+    return;
+  }
+
+  const flipbookEl = document.getElementById('flipbook');
+  const stageEl = document.getElementById('stage');
+  const loadingEl = document.getElementById('loading');
+  const isMobile = () => window.innerWidth <= 640;
+
+  let pageFlip = null;
+
+  function setLoading(msg) {
+    loadingEl.style.display = 'flex';
+    loadingEl.innerHTML = '<div class="spinner"></div><div>' + msg + '</div>';
+    flipbookEl.style.visibility = 'hidden';
+  }
+
+  /**
+   * Dựng (hoặc dựng lại) flipbook từ một mảng "pages":
+   *   [{ hard: bool, title: string, html: string }, ...]
+   * kèm kích thước 1 trang (pageWidth/pageHeight, theo pixel thiết kế).
+   */
+  function buildFlipbook(pages, pageWidth, pageHeight) {
+    if (pageFlip) { pageFlip.destroy(); pageFlip = null; }
+    flipbookEl.innerHTML = '';
+
+    pages.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'page';
+      if (p.hard) div.setAttribute('data-density', 'hard');
+      div.innerHTML = p.html;
+      flipbookEl.appendChild(div);
+    });
+
+    // Mục lục
+    const tocList = document.getElementById('tocList');
+    tocList.innerHTML = '';
+    pages.forEach((p, i) => {
+      const item = document.createElement('div');
+      item.className = 'toc-item';
+      item.setAttribute('data-page', i);
+      item.innerHTML = '<span class="num">' + String(i + 1).padStart(2, '0') + '</span><span>' + p.title + '</span>';
+      item.addEventListener('click', () => {
+        pageFlip.flip(i);
+        if (isMobile()) closeToc();
+      });
+      tocList.appendChild(item);
+    });
+
+    pageFlip = new St.PageFlip(flipbookEl, {
+      width: pageWidth,
+      height: pageHeight,
+      size: 'stretch',
+      minWidth: 220,
+      maxWidth: 1200,
+      minHeight: 320,
+      maxHeight: 1600,
+      maxShadowOpacity: 0.5,
+      showCover: true,
+      mobileScrollSupport: false,
+      useMouseEvents: true,
+      usePortrait: true,
+      autoSize: false
+    });
+    pageFlip.loadFromHTML(document.querySelectorAll('#flipbook .page'));
+
+    loadingEl.style.display = 'none';
+    flipbookEl.style.visibility = 'visible';
+
+    function updateIndicator() {
+      const page = pageFlip.getCurrentPageIndex();
+      const total = pageFlip.getPageCount();
+      document.getElementById('pageIndicator').textContent = (page + 1) + ' / ' + total;
+      document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('active'));
+      const active = document.querySelector('.toc-item[data-page="' + page + '"]');
+      if (active) active.classList.add('active');
+      document.getElementById('btnFirst').disabled = page <= 0;
+      document.getElementById('btnPrev').disabled = page <= 0;
+      document.getElementById('btnLast').disabled = page >= total - 1;
+      document.getElementById('btnNext').disabled = page >= total - 1;
+    }
+
+    pageFlip.on('flip', updateIndicator);
+
+    updateIndicator();
+
+    window.__pageFlip = pageFlip;
+  }
+
+  /* ---------- Đọc file PDF bằng pdf.js và chuyển từng trang thành ảnh ---------- */
+  const pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+  if (pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+
+  async function renderPdfToPages(source) {
+    if (!pdfjsLib) throw new Error('pdf.js chưa tải được');
+    const pdf = await pdfjsLib.getDocument(source).promise;
+    const count = pdf.numPages;
+    const pages = [];
+    let pageWidth = CONFIG.pageWidth, pageHeight = CONFIG.pageHeight;
+
+    for (let i = 1; i <= count; i++) {
+      setLoading('Đang dựng trang ' + i + ' / ' + count + '…');
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: CONFIG.pdfRenderScale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+      if (i === 1) { pageWidth = viewport.width / CONFIG.pdfRenderScale; pageHeight = viewport.height / CONFIG.pdfRenderScale; }
+
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+      const url = URL.createObjectURL(blob);
+      pages.push({
+        hard: (i === 1 || i === count),
+        title: 'Trang ' + i,
+        html: '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;display:block;" alt="Trang ' + i + '">'
+      });
+    }
+    return { pages, pageWidth, pageHeight };
+  }
+
+  async function openPdf(source, label) {
+    try {
+      setLoading('Đang mở ' + (label || 'PDF') + '…');
+      const { pages, pageWidth, pageHeight } = await renderPdfToPages(source);
+      buildFlipbook(pages, pageWidth, pageHeight);
+      if (isMobile()) closeToc();
+    } catch (err) {
+      console.error(err);
+      loadingEl.style.display = 'flex';
+      loadingEl.innerHTML = '<div style="color:#e0a0a0;">Không mở được file PDF này. (' +
+        (err && err.message ? err.message : 'lỗi không xác định') + ')</div>';
+    }
+  }
+
+  document.getElementById('pdfInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => openPdf({ data: new Uint8Array(reader.result) }, file.name);
+    reader.readAsArrayBuffer(file);
+  });
+
+  /* ---------- Khởi động ---------- */
+  document.getElementById('confTitle').textContent = CONFIG.title;
+  document.getElementById('confSub').textContent = CONFIG.subtitle;
+  document.title = CONFIG.title + " — Xem trực tuyến";
+
+  if (CONFIG.pdfUrl) {
+    openPdf(CONFIG.pdfUrl, CONFIG.pdfUrl);
+  } else {
+    buildFlipbook(CONFIG.pages, CONFIG.pageWidth, CONFIG.pageHeight);
+  }
+
+  // Toolbar controls (pageFlip instance có thể đổi khi mở PDF mới -> luôn gọi qua window.__pageFlip)
+  document.getElementById('btnFirst').addEventListener('click', () => window.__pageFlip && window.__pageFlip.turnToPage(0));
+  document.getElementById('btnLast').addEventListener('click', () => window.__pageFlip && window.__pageFlip.turnToPage(window.__pageFlip.getPageCount() - 1));
+  document.getElementById('btnPrev').addEventListener('click', () => window.__pageFlip && window.__pageFlip.flipPrev());
+  document.getElementById('btnNext').addEventListener('click', () => window.__pageFlip && window.__pageFlip.flipNext());
+
+  document.getElementById('tapLeft').addEventListener('click', () => window.__pageFlip && window.__pageFlip.flipPrev());
+  document.getElementById('tapRight').addEventListener('click', () => window.__pageFlip && window.__pageFlip.flipNext());
+
+  const tocPanel = document.getElementById('tocPanel');
+  const tocBackdrop = document.getElementById('tocBackdrop');
+  function closeToc() { tocPanel.classList.add('collapsed'); tocBackdrop.classList.remove('show'); }
+  function openToc() { tocPanel.classList.remove('collapsed'); if (isMobile()) tocBackdrop.classList.add('show'); }
+
+  document.getElementById('toggleToc').addEventListener('click', () => {
+    if (tocPanel.classList.contains('collapsed')) openToc(); else closeToc();
+  });
+  tocBackdrop.addEventListener('click', closeToc);
+
+  if (isMobile()) closeToc();
+
+  document.getElementById('btnFullscreen').addEventListener('click', () => {
+    const el = document.documentElement;
+    if (!document.fullscreenElement) el.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (!window.__pageFlip) return;
+    if (e.key === 'ArrowRight') window.__pageFlip.flipNext();
+    if (e.key === 'ArrowLeft') window.__pageFlip.flipPrev();
+  });
+});
+</script>
+</body>
+</html>
