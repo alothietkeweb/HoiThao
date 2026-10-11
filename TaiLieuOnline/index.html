@@ -49,15 +49,16 @@
   }
   .brand{ display:flex; align-items:center; gap:12px; }
   .brand .mark{
-    width:34px; height:34px; border-radius:50%;
+    width:34px; height:34px;;
     border:1.5px solid var(--gold-soft);
     display:flex; align-items:center; justify-content:center;
-    font-family:'Source Serif 4', serif; font-weight:600; font-size:15px;
+    font-weight:600; font-size:15px;
     color: var(--gold-soft);
+    background: url(logo.jpg) no-repeat center center / cover;
   }
   .brand .titles{ line-height:1.15; }
   .brand h1{
-    margin:0; font-family:'Source Serif 4', serif; font-weight:600;
+    margin:0; font-weight:600;
     font-size:17px; letter-spacing:0.2px; color:#F7F1E1;
   }
   .brand p{ margin:2px 0 0; font-size:12px; color:#B9AE93; }
@@ -205,10 +206,10 @@
 
   <header>
     <div class="brand">
-      <div class="mark">HT</div>
+      <div class="mark"> </div>
       <div class="titles">
-        <h1 id="confTitle">Hội thảo Khoa học &amp; Công nghệ 2026</h1>
-        <p id="confSub">Kỷ yếu &amp; tài liệu hội thảo — bản xem trực tuyến</p>
+        <h1 id="confTitle">Kỷ yếu hội thảo khoa học</h1>
+        <p id="confSub">Phát triển hệ sinh thái đổi mới sáng tạo tỉnh Đắk Lắk giai đoạn 2026-2030 - tầm nhìn 2045</p>
       </div>
     </div>
     <div class="header-actions">
@@ -270,11 +271,11 @@
    CẤU HÌNH TÀI LIỆU — chỉnh phần này để thay bằng tài liệu hội thảo thật
    ====================================================================== */
 const CONFIG = {
-  title: "Hội thảo Khoa học & Công nghệ 2026",
-  subtitle: "Tài liệu hội thảo — bản xem trực tuyến",
+  title: "Kỷ yếu hội thảo khoa học",
+  subtitle: "Phát triển hệ sinh thái đổi mới sáng tạo tỉnh Đắk Lắk giai đoạn 2026-2030 - tầm nhìn 2045",
 
   // Đường dẫn đến file PDF (nếu ở local thì dùng tailieu.pdf)
-  pdfUrl: "tailieu.pdf",
+  pdfUrl: "Kỷ yếu hội thảo khoa học phát triển hệ sinh thái đổi mới sáng tạo tỉnh Đắk Lắk giai đoạn 2026-2030 - tầm nhìn 2045.pdf",
 
   // Độ phân giải khi "chụp" mỗi trang PDF ra ảnh
   pdfRenderScale: 2.0,
